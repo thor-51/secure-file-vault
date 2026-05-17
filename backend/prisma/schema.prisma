@@ -1,0 +1,205 @@
+// FILE: backend/prisma/schema.prisma
+// Prisma ORM schema for Secure File Vault System
+// Includes all tables, relations, indexes, and constraints
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum Role {
+  admin
+  user
+}
+
+enum ShareVisibility {
+  public
+  private
+  specific_users
+}
+
+enum AuditAction {
+  UPLOAD
+  DOWNLOAD
+  DELETE
+  RENAME
+  SHARE
+  LOGIN
+  LOGOUT
+  REGISTER
+  PERMISSION_CHANGE
+}
+
+// ─────────────────────────────────────────────
+// USERS TABLE
+// ─────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  name          String
+  role          Role     @default(user)
+  storageUsed   BigInt   @default(0) @map("storage_used") // bytes
+  storageQuota  BigInt   @default(10485760) @map("storage_quota") // 10MB default
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  lastLoginAt   DateTime? @map("last_login_at")
+
+  // Relations
+  files           File[]
+  refreshTokens   RefreshToken[]
+  auditLogs       AuditLog[]
+  filePermissions FilePermission[]
+
+  @@index([email])
+  @@index([role])
+  @@index([createdAt])
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// REFRESH TOKENS TABLE
+// ─────────────────────────────────────────────
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+// ─────────────────────────────────────────────
+// FILES TABLE
+// ─────────────────────────────────────────────
+
+model File {
+  id           String          @id @default(cuid())
+  name         String          // display name (user-facing)
+  originalName String          @map("original_name") // original upload name
+  s3Key        String          @map("s3_key")       // S3 object key
+  s3Bucket     String          @map("s3_bucket")
+  mimeType     String          @map("mime_type")
+  size         BigInt          // bytes
+  sha256Hash   String          @map("sha256_hash")  // for deduplication
+  ownerId      String          @map("owner_id")
+  visibility   ShareVisibility @default(private)
+  description  String?
+  isDeleted    Boolean         @default(false) @map("is_deleted")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  deletedAt    DateTime?       @map("deleted_at")
+
+  // Relations
+  owner       User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tags        FileTag[]
+  permissions FilePermission[]
+  auditLogs   AuditLog[]
+
+  // Composite unique: same hash + owner (allows same file for different owners)
+  @@unique([sha256Hash, ownerId], name: "dedup_key")
+  @@index([ownerId])
+  @@index([mimeType])
+  @@index([sha256Hash])
+  @@index([createdAt])
+  @@index([size])
+  @@index([isDeleted])
+  @@index([visibility])
+  // Full-text search index (via raw SQL in migration)
+  @@map("files")
+}
+
+// ─────────────────────────────────────────────
+// FILE PERMISSIONS TABLE
+// ─────────────────────────────────────────────
+
+model FilePermission {
+  id        String   @id @default(cuid())
+  fileId    String   @map("file_id")
+  userId    String   @map("user_id")
+  canRead   Boolean  @default(true) @map("can_read")
+  canDelete Boolean  @default(false) @map("can_delete")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([fileId, userId])
+  @@index([fileId])
+  @@index([userId])
+  @@map("file_permissions")
+}
+
+// ─────────────────────────────────────────────
+// TAGS TABLE
+// ─────────────────────────────────────────────
+
+model Tag {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  files FileTag[]
+
+  @@index([name])
+  @@map("tags")
+}
+
+// ─────────────────────────────────────────────
+// FILE-TAGS JUNCTION TABLE
+// ─────────────────────────────────────────────
+
+model FileTag {
+  fileId String @map("file_id")
+  tagId  String @map("tag_id")
+
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([fileId, tagId])
+  @@index([fileId])
+  @@index([tagId])
+  @@map("file_tags")
+}
+
+// ─────────────────────────────────────────────
+// AUDIT LOGS TABLE
+// ─────────────────────────────────────────────
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  userId    String?     @map("user_id")
+  fileId    String?     @map("file_id")
+  action    AuditAction
+  ipAddress String?     @map("ip_address")
+  userAgent String?     @map("user_agent")
+  metadata  Json?       // extra context as JSON
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  file File? @relation(fields: [fileId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([fileId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
