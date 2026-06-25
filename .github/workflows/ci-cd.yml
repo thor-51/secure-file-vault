@@ -62,7 +62,7 @@ jobs:
         working-directory: backend
         env:
           DATABASE_URL: postgresql://postgres:password@localhost:5432/secure_vault_test
-        run: npx prisma generate && npx prisma migrate deploy
+        run: npx prisma generate && npx prisma db push --force-reset
 
       - name: Run tests with coverage
         working-directory: backend
