@@ -1,5 +1,7 @@
 # 🔐 Secure File Vault System
 
+[![CI](https://github.com/thor-51/secure-file-vault/actions/workflows/ci.yml/badge.svg)](https://github.com/thor-51/secure-file-vault/actions/workflows/ci.yml)
+
 A production-grade encrypted file storage and sharing platform.
 
 ## Tech Stack
