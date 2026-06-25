@@ -19,7 +19,7 @@ const fileRepository = {
 
   async findByHash(sha256Hash, ownerId) {
     return prisma.file.findUnique({
-      where: { dedup_key: { sha256Hash, ownerId } },
+      where: { dedup_key: { sha256Hash, ownerId }, isDeleted: false },
     });
   },
 
