@@ -1,4 +1,3 @@
-# FILE: .github/workflows/ci-cd.yml
 # CI/CD pipeline: lint → test → build Docker images → deploy
 
 name: CI/CD Pipeline
@@ -59,7 +58,7 @@ jobs:
         working-directory: backend
         run: npm ci
 
-      - name: Generate Prisma client
+      - name: Generate Prisma client and run migrations
         working-directory: backend
         env:
           DATABASE_URL: postgresql://postgres:password@localhost:5432/secure_vault_test
@@ -195,7 +194,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ─────────────────────────────────────────────────────────────────────
-  # 4. Deploy to Render/Railway (backend) + Vercel (frontend)
+  # 4. Deploy (only if secrets are configured)
   # ─────────────────────────────────────────────────────────────────────
   deploy:
     name: Deploy
@@ -207,16 +206,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ── Backend → Render ──────────────────────────────────────────
       - name: Trigger Render deploy
-        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
         run: |
-          curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" \
-            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}"
+          if [ -n "$RENDER_DEPLOY_HOOK_URL" ]; then
+            curl -s -X POST "$RENDER_DEPLOY_HOOK_URL" \
+              -H "Authorization: Bearer $RENDER_API_KEY"
+          else
+            echo "No Render deploy hook configured, skipping"
+          fi
 
-      # ── Frontend → Vercel ─────────────────────────────────────────
       - name: Deploy frontend to Vercel
-        if: ${{ secrets.VERCEL_TOKEN != '' }}
+        if: vars.VERCEL_CONFIGURED == 'true'
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
