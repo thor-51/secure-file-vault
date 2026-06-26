@@ -60,9 +60,9 @@ services:
       API_VERSION: v1
       DATABASE_URL: postgresql://postgres:password@postgres:5432/secure_vault
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: 0556a1f4293969700fd5f84fb7894dc76fa7a2e8ed44b9af45b891e1b6d07bd5
       JWT_EXPIRES_IN: 15m
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_REFRESH_SECRET: 1da6eb35d033e38ad0bb43c91d67b9bab40b06f4a95edb409ea657778862200a
       JWT_REFRESH_EXPIRES_IN: 7d
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
@@ -72,10 +72,11 @@ services:
       CORS_ORIGIN: http://localhost
       LOG_LEVEL: info
       MAX_FILE_SIZE_MB: 50
-      DEFAULT_STORAGE_QUOTA_MB: 10
-      RATE_LIMIT_MAX_REQUESTS: 2
+      DEFAULT_STORAGE_QUOTA_MB: 100
+      S3_MOCK: 'true'
+      RATE_LIMIT_MAX_REQUESTS: 1000
     ports:
-      - '5000:5000'
+      - '5001:5000'
     volumes:
       - backend_logs:/app/logs
     healthcheck:
@@ -95,7 +96,7 @@ services:
       backend:
         condition: service_healthy
     ports:
-      - '80:80'
+      - '8080:80'
     environment:
       VITE_API_URL: http://localhost/api/v1
 
