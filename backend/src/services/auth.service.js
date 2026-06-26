@@ -1,7 +1,7 @@
 // FILE: backend/src/services/auth.service.js
 // Business logic layer for authentication — JWT, bcrypt, token management
 
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const env = require('../config/env');

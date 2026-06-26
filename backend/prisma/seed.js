@@ -2,7 +2,7 @@
 // Seed script: creates admin user, sample user, tags, and demo files
 
 const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 

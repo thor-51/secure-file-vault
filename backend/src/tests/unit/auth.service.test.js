@@ -4,7 +4,7 @@
 jest.mock('../../repositories/auth.repository');
 const authRepository = require('../../repositories/auth.repository');
 const authService = require('../../services/auth.service');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 describe('AuthService', () => {
   beforeEach(() => jest.clearAllMocks());

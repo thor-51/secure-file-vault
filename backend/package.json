@@ -19,7 +19,7 @@
     "@aws-sdk/client-s3": "^3.540.0",
     "@aws-sdk/s3-request-presigner": "^3.540.0",
     "@prisma/client": "^5.11.0",
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.3",
     "bullmq": "^5.4.2",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
@@ -51,8 +51,15 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "setupFiles": ["<rootDir>/src/tests/setup.js"],
-    "testMatch": ["<rootDir>/src/tests/**/*.test.js"],
-    "collectCoverageFrom": ["src/**/*.js", "!src/tests/**"]
+    "setupFiles": [
+      "<rootDir>/src/tests/setup.js"
+    ],
+    "testMatch": [
+      "<rootDir>/src/tests/**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/tests/**"
+    ]
   }
 }
